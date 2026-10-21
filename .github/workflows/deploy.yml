@@ -1,0 +1,47 @@
+name: CI/CD Blue-Green Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Test Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies & Test
+        run: |
+          cd app
+          npm ci
+          node -e "require('./server.js'); console.log('Syntax & imports OK');"
+
+  deploy-simulation:
+    name: Zero-Downtime Deployment
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Base Containers
+        run: docker compose up -d reverse-proxy app_blue
+
+      - name: Execute Blue-Green Switch Script
+        run: |
+          chmod +x ./scripts/deploy.sh
+          ./scripts/deploy.sh
+
+      - name: Verify Live Service
+        run: |
+          curl -f http://localhost/ || exit 1
