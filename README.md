@@ -45,14 +45,43 @@ Open a separate terminal window and run:
 
 ### 3. Deploy New Version (Green)
 In your main terminal, run:
-```powershell
-.\scripts\deploy.ps1 -TargetVersion "2.0.0"
-```
+- **Windows (PowerShell)**:
+  ```powershell
+  .\scripts\deploy.ps1 -TargetVersion "2.0.0"
+  ```
+- **Linux / macOS (Bash)**:
+  ```bash
+  ./scripts/deploy.sh
+  ```
 Notice in the monitoring terminal that the output seamlessly transitions from `BLUE` to `GREEN` with 0 dropped requests!
 
 ### 4. Rollback (If needed)
-```powershell
-.\scripts\rollback.ps1
+- **Windows (PowerShell)**:
+  ```powershell
+  .\scripts\rollback.ps1
+  ```
+- **Linux / macOS (Bash)**:
+  ```bash
+  ./scripts/rollback.sh
+  ```
+
+### 5. Standalone Quick Simulation (No Docker Required)
+If you want to test the blue-green concept directly without Docker:
+1. Start the simulation:
+   ```bash
+   node scripts/simulate-blue-green.js
+   ```
+2. In a second terminal, shift traffic on the fly:
+   ```bash
+   node scripts/switch.js green   # switches to Green
+   node scripts/switch.js blue    # switches back to Blue
+   ```
+
+### 6. Automated Testing
+Run the automated unit and integration tests:
+```bash
+cd app
+npm test
 ```
 
 ## Project Page

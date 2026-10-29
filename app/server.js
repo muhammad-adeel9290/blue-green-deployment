@@ -50,6 +50,11 @@ app.post('/chaos/recover', (req, res) => {
   res.send(`Health status set to HEALTHY for ${COLOR}`);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[${COLOR.toUpperCase()}] Server running on port ${PORT} (Version: ${VERSION})`);
-});
+let server = null;
+if (require.main === module) {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[${COLOR.toUpperCase()}] Server running on port ${PORT} (Version: ${VERSION})`);
+  });
+}
+
+module.exports = app;

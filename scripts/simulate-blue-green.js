@@ -1,5 +1,4 @@
 const http = require('http');
-const httpProxy = require('http'); // native proxy
 const { spawn } = require('child_process');
 
 console.log('=== BLUE-GREEN DEPLOYMENT SIMULATION (STANDALONE) ===\n');
@@ -13,9 +12,26 @@ let greenEnv = Object.assign({}, process.env, { PORT: '8082', APP_COLOR: 'green'
 const greenProcess = spawn('node', ['app/server.js'], { env: greenEnv, stdio: 'inherit' });
 
 let activeTargetPort = 8081; // Blue is initially active
+let activeTargetColor = 'BLUE';
 
 // 3. Lightweight Reverse Proxy on Port 8080 (equivalent to Nginx)
 const proxyServer = http.createServer((clientReq, clientRes) => {
+  // Allow manual switch via admin endpoint or switch.js
+  if (clientReq.url.startsWith('/admin/switch/')) {
+    const target = clientReq.url.split('/admin/switch/')[1].toLowerCase();
+    if (target === 'green') {
+      activeTargetPort = 8082;
+      activeTargetColor = 'GREEN';
+    } else {
+      activeTargetPort = 8081;
+      activeTargetColor = 'BLUE';
+    }
+    console.log(`\n[REVERSE PROXY] Traffic switched to: ${activeTargetColor} (Port ${activeTargetPort})`);
+    clientRes.writeHead(200, { 'Content-Type': 'application/json' });
+    clientRes.end(JSON.stringify({ status: 'ok', active: activeTargetColor, port: activeTargetPort }));
+    return;
+  }
+
   const options = {
     hostname: '127.0.0.1',
     port: activeTargetPort,
@@ -42,12 +58,16 @@ proxyServer.listen(8080, () => {
   console.log('[REVERSE PROXY] Currently routing traffic to: BLUE (Port ' + activeTargetPort + ')');
   console.log('\nTesting instructions:');
   console.log('1. Open browser: http://localhost:8080/ (See Blue response)');
-  console.log('2. In PowerShell run: node scripts/switch.js green (Switches to Green without downtime!)');
+  console.log('2. In another terminal run: node scripts/switch.js green (Switches to Green without downtime!)');
+  console.log('3. Open browser: http://localhost:8080/ (See Green response)');
 });
 
 // Clean up child processes on exit
-process.on('SIGINT', () => {
-  blueProcess.kill();
-  greenProcess.kill();
+const cleanup = () => {
+  try { blueProcess.kill(); } catch (e) {}
+  try { greenProcess.kill(); } catch (e) {}
   process.exit();
-});
+};
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);

@@ -17,11 +17,11 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Dependencies & Test
+      - name: Install Dependencies & Run Tests
         run: |
           cd app
           npm ci
-          node -e "require('./server.js'); console.log('Syntax & imports OK');"
+          npm test
 
   deploy-simulation:
     name: Zero-Downtime Deployment
